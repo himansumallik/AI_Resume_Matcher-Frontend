@@ -1,137 +1,100 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import '../styles/tailwind.css';
+import Navbar from './Navbar';
+import ResumeModal from './ResumeModal';
+import JobRecommenderModal from './JobRecommenderModal'; 
+import FormatResumeModal from './FormatResumeModal';
 
-
-function Homepage() {
-const [resumeFile, setResumeFile] = useState(null);
-const [jobDescription, setJobDescription] = useState('');
-const [matchResult, setMatchResult] = useState(null);
-const [loading, setLoading] = useState(false);
-
-const handleResumeUpload = (e) => {
-    setResumeFile(e.target.files[0]);
-};
-
-const handleJobDescriptionChange = (e) => {
-    setJobDescription(e.target.value);
-};
-
-const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!resumeFile) {
-    alert('Please upload a resume.');
-    return;
-    }
-
-    if (!jobDescription) {
-    alert('Please enter a job description.');
-    return;
-    }
-
-    const formData = new FormData();
-    formData.append("resume", resumeFile);
-    formData.append("jobDescription", jobDescription);
-
-    setLoading(true);
-
-    try {
-    const response = await axios.post('http://localhost:5001/analyze', formData, {
-        headers: {
-        'Content-Type': 'multipart/form-data',
-        },
-    });
-    setMatchResult(response.data);
-    } catch (error) {
-    console.error('Error submitting resume:', error);
-    alert('Error: Unable to process your resume. Please try again later.');
-    } finally {
-    setLoading(false);
-    }
-};
+const Homepage = () => {
+const [showResumeModal, setShowResumeModal] = useState(false);
+const [showJobModal, setShowJobModal] = useState(false);
+const [showFormatResumeModal,setShowFormatResumeModal] = useState(false);
 
 return (
-    <div className="App bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-lg">
-        <h1 className="text-3xl font-extrabold text-center mb-6 text-blue-600">AI-Powered Resume Matcher</h1>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 to-gray-800">
+    <Navbar />
+    
+    <div className="flex-grow flex flex-col items-center justify-center px-4 py-12">
+        <h1 className="text-5xl font-bold mb-12 text-center bg-clip-text text-transparent bg-gradient-to-r from-amber-300 to-amber-500">
+        AI Resume Matcher
+        </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Upload Resume */}
-        <div>
-            <label className="block text-lg font-medium">Upload Your Resume</label>
-            <input
-            type="file"
-            onChange={handleResumeUpload}
-            className="mt-2 p-3 w-full border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-        </div>
-
-        {/* Job Description */}
-        <div>
-            <label className="block text-lg font-medium">Enter Job Description</label>
-            <textarea
-            value={jobDescription}
-            onChange={handleJobDescriptionChange}
-            className="mt-2 p-3 w-full border-2 border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            rows="4"
-            placeholder="Describe the job requirements..."
-            />
-        </div>
-
-        {/* Submit Button */}
-        <div>
-            <button
-            type="submit"
-            className="mt-4 w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
-            >
-            Submit
-            </button>
-        </div>
-        </form>
-
-        {/* Loading Spinner */}
-        {loading && (
-        <div className="mt-6 flex justify-center">
-            <svg
-            className="animate-spin h-8 w-8 text-blue-600"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            >
-            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4"></circle>
-            <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 0115.864-4.528M12 4v8l4 4"
-            ></path>
-            </svg>
-        </div>
-        )}
-
-        {/* Result Section */}
-        {matchResult && (
-        <div className="mt-6 p-6 border rounded-md border-blue-200 bg-blue-50">
-            <h2 className="text-2xl font-semibold mb-4 text-blue-700">Match Result</h2>
-            <div className="space-y-3">
-            <p>
-                <strong className="text-blue-600">Match Percentage:</strong> {matchResult.matchPercentage}%
-            </p>
-            <p>
-                <strong className="text-blue-600">Missing Keywords:</strong>
-                {matchResult.missingKeywords.length > 0 ? (
-                <span className="text-red-600">{matchResult.missingKeywords.join(', ')}</span>
-                ) : (
-                <span className="text-green-600">No keywords missing</span>
-                )}
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+        {/* Resume Analyzer Card */}
+        <div
+            onClick={() => setShowResumeModal(true)}
+            className="bg-gray-800 border border-gray-700 rounded-xl p-8 cursor-pointer 
+            hover:shadow-2xl transition-all duration-300 hover:border-amber-400/30
+            hover:bg-gradient-to-br hover:from-gray-800 hover:to-gray-700/80"
+        >
+            <div className="flex items-center mb-4">
+            <div className="text-3xl mr-3 bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
+                📝
             </div>
+            <h2 className="text-2xl font-semibold text-amber-100">Resume Analyzer</h2>
+            </div>
+            <p className="text-gray-300">
+            Upload your resume and job description to check how well they match.
+            </p>
+            <div className="mt-4 h-1 bg-gradient-to-r from-amber-400/50 to-transparent rounded-full"></div>
         </div>
+
+        {/* Job Recommender Card - Fixed and now shows text */}
+        <div
+            onClick={() => setShowJobModal(true)}
+            className="bg-gray-800 border border-gray-700 rounded-xl p-8 cursor-pointer 
+            hover:shadow-2xl transition-all duration-300 hover:border-amber-400/30
+            hover:bg-gradient-to-br hover:from-gray-800 hover:to-gray-700/80"
+        >
+            <div className="flex items-center mb-4">
+            <div className="text-3xl mr-3 bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
+                💼
+            </div>
+            <h2 className="text-2xl font-semibold text-amber-100">Job Recommender</h2>
+            </div>
+            <p className="text-gray-300">
+            Get personalized job suggestions based on your resume.
+            </p>
+            <div className="mt-4 h-1 bg-gradient-to-r from-amber-400/50 to-transparent rounded-full"></div>
+        </div>
+        </div>
+
+        <div
+            onClick={() => setShowFormatResumeModal(true)}
+            className="bg-gray-800 border-2 border-gray-700 rounded-xl p-8 cursor-pointer 
+            hover:shadow-2xl transition-all duration-300 hover:border-amber-400/30
+            hover:bg-gradient-to-br hover:from-gray-800 hover:to-gray-700/80"
+            >
+            <div className="flex items-center mb-4">
+                <div className="text-3xl mr-3 bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
+                📄
+                </div>
+                <h2 className="text-2xl font-semibold text-amber-100">Resume Format Advisor</h2>
+            </div>
+            <p className="text-gray-300">
+                Get suggestions to improve your resume layout and structure.
+            </p>
+            <div className="mt-4 h-1 bg-gradient-to-r from-amber-400/50 to-transparent rounded-full"></div>
+        </div>
+
+        {/* Modals */}
+        {showResumeModal && (
+        <ResumeModal onClose={() => setShowResumeModal(false)} />
         )}
+
+        {showJobModal && (
+        <JobRecommenderModal onClose={() => setShowJobModal(false)} />
+        )}
+
+        {showFormatResumeModal && (
+        <FormatResumeModal onClose={() => setShowFormatResumeModal(false)} />
+        )}
+
+        <p className="mt-16 text-gray-400 text-sm">
+        Powered by AI technology • Get better job matches instantly
+        </p>
     </div>
     </div>
 );
-}
+};
 
 export default Homepage;

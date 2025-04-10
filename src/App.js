@@ -1,13 +1,18 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Homepage from './components/Homepage';
-import '../styles/tailwind.css';
+import JobRecommendation from './components/JobRecommendation';
+import Resume from './components/Resume'
+import '../src/styles/tailwind.css';
+
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Homepage />} />
+        <Route path="/resume" element={<Resume />} />
+        <Route path="/recommend" element={<JobRecommendation />} />
       </Routes>
     </Router>
   );

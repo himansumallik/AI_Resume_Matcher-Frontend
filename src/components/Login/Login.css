@@ -1,0 +1,169 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #000; /* Black background */
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .login-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .login-box {
+    background-color: #1e1e1e; /* Dark gray background for the container */
+    padding: 50px;
+    border-radius: 15px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    width: 400px;
+    max-width: 100%;
+    min-height: 380px; /* Increased height for better spacing */
+    color: #fff; /* White text color */
+  }
+
+  .signup-box {
+    background-color: #1e1e1e; /* Dark gray background for the container */
+    padding: 50px;
+    border-radius: 15px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    width: 400px;
+    max-width: 100%;
+    min-height: 450px; /* Increased height for better spacing */
+    color: #fff; /* White text color */
+  }
+  
+  h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 28px;
+    color: #fff; /* White heading */
+  }
+  
+  .input-group {
+    margin-bottom: 20px;
+    position: relative;
+  }
+  
+  input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #fff; /* White border */
+    font-size: 18px;
+    background-color: #333; /* Darker input background */
+    color: #fff; /* White text */
+    padding-left: 40px;
+  }
+  
+  input::placeholder {
+    color: #bbb; /* Light gray placeholder text */
+  }
+  
+  input:focus {
+    border-color: #ff6f00; /* Bright orange border on focus */
+    outline: none;
+  }
+  
+  button {
+    width: 100%;
+    padding: 15px;
+    background-color: #ff6f00; /* Bright orange button */
+    border: none;
+    color: #fff; /* White button text */
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  button:hover {
+    background-color: #e65c00; /* Slightly darker orange on hover */
+  }
+  
+  .toggle-link {
+    color: #ff6f00; /* Bright orange for links */
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  
+  .icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #ff6f00; /* Bright orange icons */
+  }
+  
+  .eye-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #ff6f00; /* Bright orange eye icon */
+    cursor: pointer;
+  }
+  
+  .social-login {
+    text-align: center;
+    margin-top: 30px;
+  }
+  
+  .social-login p {
+    color: #fff; /* White text */
+  }
+  
+  .social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+  }
+  
+  .social-icon {
+    font-size: 30px;
+    color: #ff6f00; /* Bright orange social icons */
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+  
+  .social-icon:hover {
+    color: #e65c00; /* Slightly darker orange on hover */
+  }
+
+
+  .feedback-message {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 8px;
+    animation: fade-in 0.5s ease;
+  }
+  
+  /* Custom success message */
+  .success-message {
+    background-color: rgba(0, 120, 255, 0.2); /* Light blue background */
+    color: #0078ff; /* Bright blue text */
+    border: 1px solid #0078ff;
+  }
+  
+  /* Custom error message */
+  .error-message {
+    background-color: rgba(255, 140, 0, 0.2); /* Light orange background */
+    color: #ff8c00; /* Bright orange text */
+    border: 1px solid #ff8c00;
+  }
+  
