@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 function Resume() {
   const [resumeFile, setResumeFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
   const [matchResult, setMatchResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleResumeUpload = (e) => {
     setResumeFile(e.target.files[0]);
@@ -43,6 +41,29 @@ function Resume() {
       setLoading(false);
     }
   };
+
+  function filterKeywords(keywords) {
+    if (!keywords || !Array.isArray(keywords)) return [];
+    
+    const commonWords = new Set([
+      'a', 'an', 'the', 'and', 'or', 'but', 'of', 'at', 'by', 'for', 
+      'in', 'on', 'to', 'with', 'we', 'she', 'he', 'it', 'they', 'them',
+      'his', 'her', 'their', 'our', 'your', 'my', 'this', 'that', 'these',
+      'those', 'is', 'are', 'was', 'were', 'be', 'being', 'been', 'have',
+      'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could',
+      'can', 'may', 'might', 'must', 'shall', 'look', 'for', 'abe', 'skilled'
+    ]);
+  
+    return keywords
+      .filter(word => 
+        word && 
+        word.length > 3 && 
+        !commonWords.has(word.toLowerCase()) &&
+        !/\d/.test(word) // Exclude words with numbers
+      )
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize
+      .slice(0, 15); // Limit to top 15 keywords
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-12 px-6 sm:px-12">
@@ -123,7 +144,8 @@ function Resume() {
           <div className="mt-10 p-6 bg-gray-700/50 rounded-xl border border-gray-600">
             <h2 className="text-2xl font-bold text-amber-300 mb-4">Analysis Results</h2>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Match Score */}
               <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-lg font-medium text-amber-100">Match Score</span>
@@ -137,25 +159,26 @@ function Resume() {
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-medium text-amber-100 mb-2">Missing Keywords</h3>
-                {matchResult.missingKeywords.length > 0 ? (
+              {/* Missing Keywords - with frontend filtering */}
+              {filterKeywords(matchResult.missingKeywords)?.length > 0 ? (
+                <div>
+                  <h3 className="text-lg font-medium text-amber-100 mb-2">Missing Keywords</h3>
                   <div className="flex flex-wrap gap-2">
-                    {matchResult.missingKeywords.map((keyword, index) => (
+                    {filterKeywords(matchResult.missingKeywords).map((keyword, index) => (
                       <span key={index} className="px-3 py-1 bg-red-900/50 text-red-200 rounded-full text-sm">
                         {keyword}
                       </span>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-green-300 flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    Excellent! No keywords missing
-                  </p>
-                )}
-              </div>
+                </div>
+              ) : (
+                <p className="text-green-300 flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Excellent! No important keywords missing
+                </p>
+              )}
             </div>
           </div>
         )}
