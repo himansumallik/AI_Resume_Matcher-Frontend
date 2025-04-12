@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { FaFileAlt, FaRegCheckCircle, FaRegTimesCircle, FaDownload } from 'react-icons/fa';
+import { FaRegCheckCircle, FaRegTimesCircle, FaDownload } from 'react-icons/fa';
 
 const FormatResumeModal = ({ onClose }) => {
 const [resumeFile, setResumeFile] = useState(null);
@@ -8,25 +8,24 @@ const [suggestions, setSuggestions] = useState([]);
 const [loading, setLoading] = useState(false);
 const [analysisComplete, setAnalysisComplete] = useState(false);
 
-// Predefined templates data
 const resumeTemplates = [
     {
     id: 1,
     name: "Modern Professional",
     description: "Clean layout with emphasis on skills and experience",
-    file: "/templates/modern-professional.docx"
+    file: `${process.env.PUBLIC_URL}/templates/modern-professional.docx`
     },
     {
     id: 2,
     name: "Chronological",
     description: "Traditional format highlighting work history",
-    file: "/templates/chronological.docx"
+    file: `${process.env.PUBLIC_URL}/templates/chronological.docx`
     },
     {
     id: 3,
     name: "Skills-Based",
     description: "Focuses on competencies rather than work history",
-    file: "/templates/skills-based.docx"
+    file: `${process.env.PUBLIC_URL}/templates/skills-based.docx`
     }
 ];
 
@@ -36,11 +35,10 @@ const handleUpload = (e) => {
     setAnalysisComplete(false);
 };
 
-const handleDownloadTemplate = (templateFile) => {
-    // Create a temporary anchor element to trigger download
+const handleDownloadTemplate = (templateFile, templateName) => {
     const link = document.createElement('a');
     link.href = templateFile;
-    link.download = templateFile.split('/').pop();
+    link.download = `${templateName.toLowerCase().replace(' ', '-')}-template.docx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -64,7 +62,7 @@ const handleSubmit = async (e) => {
         'Content-Type': 'multipart/form-data',
         },
     });
-    
+
     const processedSuggestions = processSuggestions(res.data.suggestions);
     setSuggestions(processedSuggestions);
     setAnalysisComplete(true);
@@ -81,27 +79,38 @@ const handleSubmit = async (e) => {
 };
 
 const processSuggestions = (rawSuggestions) => {
-    if (!rawSuggestions || !Array.isArray(rawSuggestions)) return [];
-    
+    if (!rawSuggestions) return [];
+
+    const priorityMap = {
+    'missing': 'high',
+    'add': 'high',
+    'email': 'high',
+    'name': 'high',
+    'bullet': 'medium',
+    'expand': 'medium',
+    'condense': 'medium'
+    };
+
     return rawSuggestions.map(suggestion => {
     let type = 'general';
     let priority = 'medium';
-    
-    if (suggestion.toLowerCase().includes('contact') || 
-        suggestion.toLowerCase().includes('name')) {
+
+    Object.entries(priorityMap).forEach(([keyword, level]) => {
+        if (suggestion.toLowerCase().includes(keyword)) {
+        priority = level;
+        }
+    });
+
+    if (suggestion.toLowerCase().includes('contact') || suggestion.includes('email')) {
         type = 'contact';
-        priority = 'high';
-    } 
-    else if (suggestion.toLowerCase().includes('experience')) {
+    } else if (/experience|work|job/i.test(suggestion)) {
         type = 'experience';
-    }
-    else if (suggestion.toLowerCase().includes('education')) {
+    } else if (/skill|technical|tool/i.test(suggestion)) {
+        type = 'skills';
+    } else if (/education|degree/i.test(suggestion)) {
         type = 'education';
     }
-    else if (suggestion.toLowerCase().includes('skill')) {
-        type = 'skills';
-    }
-    
+
     return {
         message: suggestion,
         type,
@@ -125,7 +134,6 @@ const getSuggestionIcon = (type) => {
 return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
     <div className="bg-gray-800 rounded-lg w-full max-w-2xl flex flex-col border-2 border-gray-700 shadow-2xl max-h-[90vh]">
-        {/* Modal Header */}
         <div className="bg-gray-900 px-6 py-4 border-b-2 border-gray-700 flex justify-between items-center">
         <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-300 to-amber-500">
             Resume Format Advisor
@@ -137,11 +145,9 @@ return (
             &times;
         </button>
         </div>
-        
-        {/* Modal Content */}
+
         <div className="flex-1 overflow-y-auto p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-            {/* File Upload */}
             <div className="space-y-3">
             <label className="block text-xl font-semibold text-amber-200">
                 Upload Your Resume
@@ -172,7 +178,6 @@ return (
             )}
             </div>
 
-            {/* Submit Button */}
             <button 
             type="submit"
             disabled={loading || !resumeFile}
@@ -192,85 +197,78 @@ return (
             </button>
         </form>
 
-        {/* Suggestions */}
         {suggestions.length > 0 && (
             <div className="mt-8 p-6 bg-gray-700/50 rounded-xl border border-gray-600">
             <h3 className="text-xl font-bold text-amber-300 mb-4">
-                {analysisComplete ? 'Formatting Recommendations' : 'Analysis Error'}
+                {analysisComplete ? 'Resume Analysis Report' : 'Analysis Error'}
             </h3>
-            
+
+            {analysisComplete && (
+                <div className="mb-6 p-4 bg-gray-800/50 rounded-lg flex flex-wrap justify-between items-center">
+                <div className="flex items-center mr-4 mb-2 sm:mb-0">
+                    <span className="text-sm text-gray-400 mr-2">Overall Score:</span>
+                    <span className={`text-lg font-bold ${
+                    suggestions.filter(s => s.priority === 'high').length === 0 
+                        ? 'text-green-400' 
+                        : 'text-amber-400'
+                    }`}>
+                    {Math.max(0, 100 - (suggestions.filter(s => s.priority === 'high').length * 20))}/100
+                    </span>
+                </div>
+                <div className="flex space-x-4">
+                    <div className="text-center">
+                    <span className="block text-red-400 font-bold">
+                        {suggestions.filter(s => s.priority === 'high').length}
+                    </span>
+                    <span className="text-xs text-gray-400">Critical</span>
+                    </div>
+                    <div className="text-center">
+                    <span className="block text-amber-400 font-bold">
+                        {suggestions.filter(s => s.priority === 'medium').length}
+                    </span>
+                    <span className="text-xs text-gray-400">Recommended</span>
+                    </div>
+                    <div className="text-center">
+                    <span className="block text-blue-400 font-bold">
+                        {suggestions.filter(s => s.priority === 'low').length}
+                    </span>
+                    <span className="text-xs text-gray-400">Optional</span>
+                    </div>
+                </div>
+                </div>
+            )}
+
             <div className="space-y-4">
-                {suggestions.map((suggestion, index) => (
-                <div 
-                    key={index} 
-                    className={`p-3 rounded-lg ${suggestion.type === 'error' ? 'bg-red-900/20' : 'bg-gray-600/30'}`}
-                >
-                    <div className="flex">
-                    {getSuggestionIcon(suggestion.type)}
-                    <div>
-                        <p className="text-gray-200">{suggestion.message}</p>
-                        {suggestion.type !== 'error' && (
-                        <p className="text-xs text-gray-400 mt-1">
-                            Priority: <span className="capitalize">{suggestion.priority}</span>
-                        </p>
-                        )}
-                    </div>
-                    </div>
+                {suggestions.map((s, i) => (
+                <div key={i} className="flex items-start text-sm text-gray-300">
+                    {getSuggestionIcon(s.type)}
+                    <span>{s.message}</span>
                 </div>
                 ))}
             </div>
-            
-            {analysisComplete && suggestions.every(s => s.type !== 'error') && (
-                <>
-                <div className="mt-4 p-3 bg-green-900/20 rounded-lg border border-green-800/50">
-                    <div className="flex items-center text-green-300">
-                    <FaRegCheckCircle className="mr-2" />
-                    <p>Your resume has been successfully analyzed</p>
-                    </div>
-                </div>
-
-                {/* Template Recommendation Section */}
-                <div className="mt-6">
-                    <h4 className="text-lg font-semibold text-amber-200 mb-3">
-                    Recommended Resume Templates
-                    </h4>
-                    <div className="grid gap-3">
-                    {resumeTemplates.map(template => (
-                        <div key={template.id} className="p-3 bg-gray-600/20 rounded-lg border border-gray-500/30">
-                        <div className="flex justify-between items-center">
-                            <div>
-                            <h5 className="font-medium text-gray-100">{template.name}</h5>
-                            <p className="text-sm text-gray-400">{template.description}</p>
-                            </div>
-                            <button
-                            onClick={() => handleDownloadTemplate(template.file)}
-                            className="flex items-center px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md transition"
-                            >
-                            <FaDownload className="mr-2" />
-                            Download
-                            </button>
-                        </div>
-                        </div>
-                    ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-3">
-                    Note: These are sample templates. Customize them with your own information.
-                    </p>
-                </div>
-                </>
-            )}
             </div>
         )}
+
+        <div className="mt-10">
+            <h4 className="text-lg font-semibold text-amber-300 mb-3">Try a Resume Template</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {resumeTemplates.map(template => (
+                <div key={template.id} className="bg-gray-700/40 p-4 rounded-lg border border-gray-600 flex justify-between items-center">
+                <div>
+                    <h5 className="text-md font-bold text-white">{template.name}</h5>
+                    <p className="text-xs text-gray-400">{template.description}</p>
+                </div>
+                <button 
+                    onClick={() => handleDownloadTemplate(template.file, template.name)}
+                    className="text-amber-400 hover:text-white transition"
+                >
+                    <FaDownload size={18} />
+                </button>
+                </div>
+            ))}
+            </div>
         </div>
-        
-        {/* Modal Footer */}
-        <div className="bg-gray-900 px-6 py-3 border-t-2 border-gray-700 text-right">
-        <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-amber-100 rounded-lg transition"
-        >
-            Close
-        </button>
+
         </div>
     </div>
     </div>
