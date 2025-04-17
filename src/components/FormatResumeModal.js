@@ -1,49 +1,138 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import resumeTemplates from './ResumeLogs';
 import { FaRegCheckCircle, FaRegTimesCircle, FaDownload } from 'react-icons/fa';
 
 const FormatResumeModal = ({ onClose }) => {
+// State management
 const [resumeFile, setResumeFile] = useState(null);
 const [suggestions, setSuggestions] = useState([]);
 const [loading, setLoading] = useState(false);
 const [analysisComplete, setAnalysisComplete] = useState(false);
+const [pdfPreview, setPdfPreview] = useState(null);
+const [selectedIndustry, setSelectedIndustry] = useState('All');
+const [metrics, setMetrics] = useState({});
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const resumeTemplates = [
-    {
-    id: 1,
-    name: "Modern Professional",
-    description: "Clean layout with emphasis on skills and experience",
-    file: `${process.env.PUBLIC_URL}/templates/modern-professional.docx`
-    },
-    {
-    id: 2,
-    name: "Chronological",
-    description: "Traditional format highlighting work history",
-    file: `${process.env.PUBLIC_URL}/templates/chronological.docx`
-    },
-    {
-    id: 3,
-    name: "Skills-Based",
-    description: "Focuses on competencies rather than work history",
-    file: `${process.env.PUBLIC_URL}/templates/skills-based.docx`
-    }
-];
 
-const handleUpload = (e) => {
-    setResumeFile(e.target.files[0]);
-    setSuggestions([]);
-    setAnalysisComplete(false);
+// Calculate score based on suggestions
+const calculateScore = (suggestions) => {
+    const highPriorityCount = suggestions.filter(s => s.priority === 'high').length;
+    const mediumPriorityCount = suggestions.filter(s => s.priority === 'medium').length;
+    
+    let score = 100;
+    score -= highPriorityCount * 15;
+    score -= mediumPriorityCount * 5;
+    return Math.max(0, Math.min(100, Math.round(score)));
 };
 
+// Handle file upload with validation
+const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    
+    if (!file) return;
+    
+    if (file.size > MAX_FILE_SIZE) {
+    alert('File size exceeds 5MB limit');
+    return;
+    }
+    
+    if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
+    alert('Only PDF and DOCX files are allowed');
+    return;
+    }
+    
+    setResumeFile(file);
+    setSuggestions([]);
+    setAnalysisComplete(false);
+    
+    if (file.type === 'application/pdf') {
+    const previewUrl = URL.createObjectURL(file);
+    setPdfPreview(previewUrl);
+    } else {
+    setPdfPreview(null);
+    }
+};
+
+// Download template handler
 const handleDownloadTemplate = (templateFile, templateName) => {
     const link = document.createElement('a');
     link.href = templateFile;
-    link.download = `${templateName.toLowerCase().replace(' ', '-')}-template.docx`;
+    link.download = `${templateName.toLowerCase().replace(/ /g, '-')}-template.docx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 };
 
+// Process suggestions from API
+const processSuggestions = (rawSuggestions) => {
+    if (!rawSuggestions) return [];
+
+    const priorityMap = {
+    'missing': 'high',
+    'add': 'high',
+    'email': 'high',
+    'name': 'high',
+    'short': 'high',
+    'length': 'high',
+    'brief': 'high',
+    'bullet': 'medium',
+    'expand': 'medium',
+    'condense': 'medium',
+    'consider': 'medium'
+    };
+
+    const typeMap = {
+    'contact': ['email', 'phone', 'address', 'linkedin'],
+    'experience': ['experience', 'work', 'job', 'position', 'employment'],
+    'skills': ['skill', 'technical', 'tool', 'language', 'competenc'],
+    'education': ['education', 'degree', 'school', 'university', 'course']
+    };
+
+    return rawSuggestions.map(suggestion => {
+    let type = 'general';
+    let priority = 'medium';
+    const lowerSuggestion = suggestion.toLowerCase();
+
+    // Determine priority
+    Object.entries(priorityMap).forEach(([keyword, level]) => {
+        if (lowerSuggestion.includes(keyword)) {
+        priority = level;
+        }
+    });
+
+    // Determine type
+    Object.entries(typeMap).forEach(([suggestionType, keywords]) => {
+        if (keywords.some(keyword => lowerSuggestion.includes(keyword))) {
+        type = suggestionType;
+        }
+    });
+
+    // Enhance short/length suggestions
+    if (lowerSuggestion.includes('short') || lowerSuggestion.includes('length')) {
+        return {
+        message: `Resume length appears insufficient. Recommended additions:
+            - More bullet points under each position
+            - Relevant projects section
+            - Detailed accomplishments
+            - Technical skills inventory`,
+        type: 'length',
+        priority: 'high'
+        };
+    }
+
+    return {
+        message: suggestion,
+        type,
+        priority
+    };
+    }).sort((a, b) => {
+    const priorityOrder = { high: 3, medium: 2, low: 1 };
+    return priorityOrder[b.priority] - priorityOrder[a.priority];
+    });
+};
+
+// Submit to API
 const handleSubmit = async (e) => {
     e.preventDefault();
     if (!resumeFile) {
@@ -65,6 +154,7 @@ const handleSubmit = async (e) => {
 
     const processedSuggestions = processSuggestions(res.data.suggestions);
     setSuggestions(processedSuggestions);
+    setMetrics(res.data.metrics || {});
     setAnalysisComplete(true);
     } catch (err) {
     console.error("Error:", err);
@@ -78,50 +168,54 @@ const handleSubmit = async (e) => {
     }
 };
 
-const processSuggestions = (rawSuggestions) => {
-    if (!rawSuggestions) return [];
+// Get strengths list
+const getStrengths = () => {
+    const strengths = [];
 
-    const priorityMap = {
-    'missing': 'high',
-    'add': 'high',
-    'email': 'high',
-    'name': 'high',
-    'bullet': 'medium',
-    'expand': 'medium',
-    'condense': 'medium'
-    };
-
-    return rawSuggestions.map(suggestion => {
-    let type = 'general';
-    let priority = 'medium';
-
-    Object.entries(priorityMap).forEach(([keyword, level]) => {
-        if (suggestion.toLowerCase().includes(keyword)) {
-        priority = level;
-        }
-    });
-
-    if (suggestion.toLowerCase().includes('contact') || suggestion.includes('email')) {
-        type = 'contact';
-    } else if (/experience|work|job/i.test(suggestion)) {
-        type = 'experience';
-    } else if (/skill|technical|tool/i.test(suggestion)) {
-        type = 'skills';
-    } else if (/education|degree/i.test(suggestion)) {
-        type = 'education';
+    // Check for sufficient length
+    if (metrics.wordCount && metrics.wordCount >= 300) {
+    strengths.push("✓ Appropriate length (300+ words)");
     }
 
-    return {
-        message: suggestion,
-        type,
-        priority
-    };
-    }).sort((a, b) => {
-    const priorityOrder = { high: 3, medium: 2, low: 1 };
-    return priorityOrder[b.priority] - priorityOrder[a.priority];
-    });
+    // Check for multiple bullet points
+    if (metrics.bulletPoints && metrics.bulletPoints >= 10) {
+    strengths.push(`✓ Detailed experience (${metrics.bulletPoints} bullet points)`);
+    }
+
+    // Check for multiple sections
+    if (metrics.sections && metrics.sections >= 4) {
+    strengths.push(`✓ Well-structured (${metrics.sections} sections)`);
+    }
+
+    // Check for contact completeness
+    if (metrics.hasEmail && metrics.hasPhone) {
+    strengths.push("✓ Complete contact information");
+    }
+
+    // Check for education section
+    if (metrics.educationItems && metrics.educationItems >= 1) {
+    strengths.push("✓ Complete education details");
+    }
+
+    // Check for work experience
+    if (metrics.experienceItems && metrics.experienceItems >= 1) {
+    strengths.push("✓ Detailed work experience");
+    }
+
+    // Check for skills section
+    if (metrics.skillsCount && metrics.skillsCount >= 5) {
+    strengths.push(`✓ Comprehensive skills (${metrics.skillsCount} skills listed)`);
+    }
+
+    // Check for summary/objective
+    if (metrics.hasSummary) {
+    strengths.push("✓ Professional summary included");
+    }
+
+    return strengths;
 };
 
+// Suggestion icon component
 const getSuggestionIcon = (type) => {
     switch(type) {
     case 'error':
@@ -131,9 +225,21 @@ const getSuggestionIcon = (type) => {
     }
 };
 
+// Clean up preview URL
+useEffect(() => {
+    return () => {
+    if (pdfPreview) {
+        URL.revokeObjectURL(pdfPreview);
+    }
+    };
+}, [pdfPreview]);
+
+// Industry options derived from templates
+const industryOptions = ['All', ...new Set(resumeTemplates.map(t => t.industry))];
+
 return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-    <div className="bg-gray-800 rounded-lg w-full max-w-2xl flex flex-col border-2 border-gray-700 shadow-2xl max-h-[90vh]">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-start justify-center z-50 p-4 overflow-y-auto">
+    <div className="bg-gray-800 rounded-lg w-full max-w-2xl flex flex-col border-2 border-gray-700 shadow-2xl my-4 max-h-[95vh]">
         <div className="bg-gray-900 px-6 py-4 border-b-2 border-gray-700 flex justify-between items-center">
         <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-300 to-amber-500">
             Resume Format Advisor
@@ -176,6 +282,16 @@ return (
                 Selected: {resumeFile.name}
                 </p>
             )}
+            {pdfPreview && (
+                <div className="mt-4 border border-gray-700 p-2 rounded">
+                <h4 className="text-sm font-semibold text-gray-400 mb-1">Preview:</h4>
+                <iframe 
+                    src={pdfPreview} 
+                    className="w-full h-64 border-0"
+                    title="Resume preview"
+                />
+                </div>
+            )}
             </div>
 
             <button 
@@ -204,71 +320,167 @@ return (
             </h3>
 
             {analysisComplete && (
+                <>
                 <div className="mb-6 p-4 bg-gray-800/50 rounded-lg flex flex-wrap justify-between items-center">
-                <div className="flex items-center mr-4 mb-2 sm:mb-0">
+                    <div className="flex items-center mr-4 mb-2 sm:mb-0">
                     <span className="text-sm text-gray-400 mr-2">Overall Score:</span>
                     <span className={`text-lg font-bold ${
-                    suggestions.filter(s => s.priority === 'high').length === 0 
-                        ? 'text-green-400' 
-                        : 'text-amber-400'
+                        suggestions.filter(s => s.priority === 'high').length > 0 
+                        ? 'text-amber-400' 
+                        : suggestions.length > 0
+                            ? 'text-blue-400'
+                            : 'text-green-400'
                     }`}>
-                    {Math.max(0, 100 - (suggestions.filter(s => s.priority === 'high').length * 20))}/100
+                        {calculateScore(suggestions)}/100
                     </span>
-                </div>
-                <div className="flex space-x-4">
+                    </div>
+                    <div className="flex space-x-4">
                     <div className="text-center">
-                    <span className="block text-red-400 font-bold">
+                        <span className="block text-red-400 font-bold">
                         {suggestions.filter(s => s.priority === 'high').length}
-                    </span>
-                    <span className="text-xs text-gray-400">Critical</span>
+                        </span>
+                        <span className="text-xs text-gray-400">Critical</span>
                     </div>
                     <div className="text-center">
-                    <span className="block text-amber-400 font-bold">
+                        <span className="block text-amber-400 font-bold">
                         {suggestions.filter(s => s.priority === 'medium').length}
-                    </span>
-                    <span className="text-xs text-gray-400">Recommended</span>
+                        </span>
+                        <span className="text-xs text-gray-400">Recommended</span>
                     </div>
-                    <div className="text-center">
-                    <span className="block text-blue-400 font-bold">
-                        {suggestions.filter(s => s.priority === 'low').length}
-                    </span>
-                    <span className="text-xs text-gray-400">Optional</span>
                     </div>
                 </div>
-                </div>
-            )}
 
-            <div className="space-y-4">
-                {suggestions.map((s, i) => (
-                <div key={i} className="flex items-start text-sm text-gray-300">
-                    {getSuggestionIcon(s.type)}
-                    <span>{s.message}</span>
+                {Object.keys(metrics).length > 0 && (
+                    <div className="mb-4">
+                    <h4 className="text-md font-semibold text-blue-400 mb-2">Resume Metrics:</h4>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="bg-gray-700 p-2 rounded">
+                        <div className="font-bold">Sections</div>
+                        <div>{metrics.sections || 'N/A'}</div>
+                        </div>
+                        <div className="bg-gray-700 p-2 rounded">
+                        <div className="font-bold">Word Count</div>
+                        <div>{metrics.wordCount || 'N/A'}</div>
+                        </div>
+                        <div className="bg-gray-700 p-2 rounded">
+                        <div className="font-bold">Bullet Points</div>
+                        <div>{metrics.bulletPoints || 'N/A'}</div>
+                        </div>
+                    </div>
+                    </div>
+                )}
+
+                {suggestions.filter(s => s.priority === 'high').length > 0 && (
+                    <div className="mb-6">
+                    <h4 className="text-md font-semibold text-red-400 mb-2">Critical Improvements Needed:</h4>
+                    <div className="space-y-2 pl-4">
+                        {suggestions.filter(s => s.priority === 'high').map((s, i) => (
+                        <div 
+                            key={`high-${i}`} 
+                            className="flex items-start text-sm text-gray-300"
+                        >
+                            {getSuggestionIcon(s.type)}
+                            <span>{s.message}</span>
+                        </div>
+                        ))}
+                    </div>
+                    </div>
+                )}
+
+                {suggestions.filter(s => s.priority === 'medium').length > 0 && (
+                    <div className="mb-6">
+                    <h4 className="text-md font-semibold text-amber-400 mb-2">Recommended Enhancements:</h4>
+                    <div className="space-y-2 pl-4">
+                        {suggestions.filter(s => s.priority === 'medium').map((s, i) => (
+                        <div 
+                            key={`med-${i}`} 
+                            className="flex items-start text-sm text-gray-300"
+                        >
+                            {getSuggestionIcon(s.type)}
+                            <span>{s.message}</span>
+                        </div>
+                        ))}
+                    </div>
+                    </div>
+                )}
+
+                {getStrengths().length > 0 && (
+                    <div className="mb-6">
+                    <h4 className="text-md font-semibold text-green-400 mb-2">Strengths:</h4>
+                    <div className="space-y-2 pl-4">
+                        {getStrengths().map((strength, i) => (
+                        <div key={`strength-${i}`} className="flex items-start text-sm text-gray-300">
+                            <span>{strength}</span>
+                        </div>
+                        ))}
+                    </div>
+                    </div>
+                )}
+
+                <div className="mt-6 p-4 bg-blue-900/20 rounded-lg border border-blue-700">
+                    <h4 className="text-md font-semibold text-blue-300 mb-2">
+                    ATS Optimization Tips
+                    </h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-gray-300">
+                    <li>Use standard section headers (Experience, Education, Skills)</li>
+                    <li>Include relevant keywords from job description</li>
+                    <li>Avoid tables, columns, and graphics</li>
+                    <li>Use full form of acronyms first (e.g., "Artificial Intelligence (AI)")</li>
+                    </ul>
                 </div>
-                ))}
-            </div>
+                </>
+            )}
             </div>
         )}
 
         <div className="mt-10">
-            <h4 className="text-lg font-semibold text-amber-300 mb-3">Try a Resume Template</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {resumeTemplates.map(template => (
-                <div key={template.id} className="bg-gray-700/40 p-4 rounded-lg border border-gray-600 flex justify-between items-center">
-                <div>
-                    <h5 className="text-md font-bold text-white">{template.name}</h5>
-                    <p className="text-xs text-gray-400">{template.description}</p>
-                </div>
+            <h4 className="text-lg font-semibold text-amber-300 mb-3">
+            Try a Resume Template
+            </h4>
+            
+            <div className="mb-3 flex flex-wrap gap-2">
+            {industryOptions.map(tag => (
                 <button 
-                    onClick={() => handleDownloadTemplate(template.file, template.name)}
-                    className="text-amber-400 hover:text-white transition"
+                key={tag}
+                className={`px-3 py-1 rounded-full text-xs ${
+                    selectedIndustry === tag 
+                    ? 'bg-amber-500 text-white' 
+                    : 'bg-gray-700 text-gray-300'
+                }`}
+                onClick={() => setSelectedIndustry(tag)}
                 >
-                    <FaDownload size={18} />
+                {tag}
                 </button>
-                </div>
             ))}
             </div>
-        </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {resumeTemplates
+                .filter(template => selectedIndustry === 'All' || template.industry === selectedIndustry)
+                .map(template => (
+                <div key={template.id} className="bg-gray-700/40 p-4 rounded-lg border border-gray-600 flex justify-between items-center">
+                    <div>
+                    <h5 className="text-md font-bold text-white">{template.name}</h5>
+                    <p className="text-xs text-gray-400">{template.description}</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                        {template.tags.map(tag => (
+                        <span key={tag} className="bg-gray-600 text-amber-300 px-2 py-0.5 rounded-full text-xs">
+                            {tag}
+                        </span>
+                        ))}
+                    </div>
+                    </div>
+                    <button 
+                    onClick={() => handleDownloadTemplate(template.file, template.name)}
+                    className="text-amber-400 hover:text-white transition"
+                    title="Download template"
+                    >
+                    <FaDownload size={18} />
+                    </button>
+                </div>
+                ))}
+            </div>
+        </div>
         </div>
     </div>
     </div>
