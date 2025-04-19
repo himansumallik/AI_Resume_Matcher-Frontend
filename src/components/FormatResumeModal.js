@@ -90,9 +90,14 @@ const processSuggestions = (rawSuggestions) => {
     };
 
     return rawSuggestions.map(suggestion => {
+    // Handle both string and object formats
+    const suggestionText = typeof suggestion === 'string' 
+        ? suggestion 
+        : suggestion.message || '';
+
     let type = 'general';
     let priority = 'medium';
-    const lowerSuggestion = suggestion.toLowerCase();
+    const lowerSuggestion = suggestionText.toLowerCase();
 
     // Determine priority
     Object.entries(priorityMap).forEach(([keyword, level]) => {
@@ -121,8 +126,17 @@ const processSuggestions = (rawSuggestions) => {
         };
     }
 
+    // If suggestion was already an object, preserve its structure
+    if (typeof suggestion === 'object') {
+        return {
+        ...suggestion, // Keep original fields
+        type: suggestion.type || type,
+        priority: suggestion.priority || priority
+        };
+    }
+
     return {
-        message: suggestion,
+        message: suggestionText,
         type,
         priority
     };
@@ -351,24 +365,93 @@ return (
                 </div>
 
                 {Object.keys(metrics).length > 0 && (
-                    <div className="mb-4">
-                    <h4 className="text-md font-semibold text-blue-400 mb-2">Resume Metrics:</h4>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div className="bg-gray-700 p-2 rounded">
-                        <div className="font-bold">Sections</div>
-                        <div>{metrics.sections || 'N/A'}</div>
+                    <div className="mb-6">
+                        <h4 className="text-md font-semibold text-blue-300 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Resume Metrics
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {/* Sections Metric */}
+                        <div className="bg-gray-700/50 hover:bg-gray-700/70 transition p-3 rounded-lg border border-gray-600/50">
+                            <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-400">Sections</span>
+                            <span className="text-xs px-2 py-1 rounded-full bg-blue-900/30 text-blue-300">
+                                Structure
+                            </span>
+                            </div>
+                            <div className="text-2xl font-bold text-white">
+                            {metrics.sections || '0'}
+                            <span className="text-xs ml-1 text-gray-400">/6</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-gray-600 rounded-full mt-2 overflow-hidden">
+                            <div 
+                                className="h-full bg-blue-500 rounded-full" 
+                                style={{ width: `${Math.min(100, (metrics.sections || 0) * 16.66)}%` }}
+                            ></div>
+                            </div>
                         </div>
-                        <div className="bg-gray-700 p-2 rounded">
-                        <div className="font-bold">Word Count</div>
-                        <div>{metrics.wordCount || 'N/A'}</div>
+
+                        {/* Word Count Metric */}
+                        <div className="bg-gray-700/50 hover:bg-gray-700/70 transition p-3 rounded-lg border border-gray-600/50">
+                            <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-400">Word Count</span>
+                            <span className="text-xs px-2 py-1 rounded-full bg-amber-900/30 text-amber-300">
+                                Content
+                            </span>
+                            </div>
+                            <div className="text-2xl font-bold text-white">
+                            {metrics.wordCount || '0'}
+                            </div>
+                            <div className="text-xs mt-1 text-gray-400">
+                            {metrics.wordCount >= 300 ? (
+                                <span className="text-green-400">✓ Optimal length</span>
+                            ) : (
+                                <span className="text-amber-400">Consider expanding</span>
+                            )}
+                            </div>
                         </div>
-                        <div className="bg-gray-700 p-2 rounded">
-                        <div className="font-bold">Bullet Points</div>
-                        <div>{metrics.bulletPoints || 'N/A'}</div>
+
+                        {/* Bullet Points Metric */}
+                        <div className="bg-gray-700/50 hover:bg-gray-700/70 transition p-3 rounded-lg border border-gray-600/50">
+                            <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-400">Bullet Points</span>
+                            <span className="text-xs px-2 py-1 rounded-full bg-purple-900/30 text-purple-300">
+                                Readability
+                            </span>
+                            </div>
+                            <div className="text-2xl font-bold text-white">
+                            {metrics.bulletPoints || '0'}
+                            </div>
+                            <div className="flex items-center mt-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <svg
+                                key={i}
+                                className={`w-4 h-4 ${i < Math.min(5, Math.floor((metrics.bulletPoints || 0) / 3)) ? 'text-purple-400 fill-current' : 'text-gray-600'}`}
+                                viewBox="0 0 20 20"
+                                >
+                                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                </svg>
+                            ))}
+                            <span className="text-xs ml-2 text-gray-400">
+                                {metrics.bulletPoints >= 10 ? 'Excellent' : metrics.bulletPoints >= 5 ? 'Good' : 'Needs more'}
+                            </span>
+                            </div>
                         </div>
-                    </div>
+                        </div>
+
+                        {/* Additional context */}
+                        <div className="mt-3 text-xs text-gray-400 flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Ideal metrics: 4+ sections, 300-500 words, 10+ bullet points
+                        </div>
                     </div>
                 )}
+
 
                 {suggestions.filter(s => s.priority === 'high').length > 0 && (
                     <div className="mb-6">
