@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { FaHome, FaSearch, FaSun, FaMoon, FaChevronDown, FaFileAlt, FaBriefcase, FaMagic  } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
 
-const Navbar = () => {
+const Navbar = ({ setActiveSection }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [darkMode, setDarkMode] = useState(false);
@@ -36,7 +36,10 @@ const Navbar = () => {
             {/* Logo/Brand */}
             <div 
             className="flex items-center space-x-2 cursor-pointer group"
-            onClick={() => navigate('/homepage')}
+            onClick={() => {
+                navigate('/');
+                setActiveSection(null); // Clear active section when logo is clicked
+            }}
             >
             <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-200 to-amber-400">
                 ResumeMatcher AI
@@ -115,10 +118,14 @@ const Navbar = () => {
                 )}
             </div>
             </div>
+            
             {/* Navigation */}
             <div className="flex items-center space-x-6">
             <button 
-                onClick={() => navigate('/')} 
+                onClick={() => {
+                    navigate('/');
+                    setActiveSection(null); // Clear active section when logo is clicked
+                }}
                 className={`flex items-center space-x-1 transition-colors
                 ${location.pathname === '/' ? 'text-amber-300' : 'text-gray-100 hover:text-amber-200'}`}
             >

@@ -24,7 +24,7 @@ function Resume() {
       setError('Please upload a resume');
       return;
     }
-
+  
     setLoading(true);
     setError(null);
     const formData = new FormData();
@@ -37,21 +37,23 @@ function Resume() {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+  
+      console.log("Backend response:", response.data); // <-- Log the raw backend response
+  
       const normalizedData = normalizeResponse(response.data);
       if (normalizedData?.detailedAnalysis?.skills) {
         setAnalysis(normalizedData);
       } else {
         setError("Unexpected analysis structure. Please try again.");
       }
-      
+  
     } catch (error) {
       setError(error.response?.data?.message || 'Error analyzing resume. Please try again.');
     } finally {
       setLoading(false);
     }
   };
-
+  
   const normalizeResponse = (data) => {
     if (!data || typeof data !== 'object') {
       return {
@@ -66,6 +68,7 @@ function Resume() {
     }
   
     if (data.detailedAnalysis) return data;
+    alert(data)
   
     return {
       overallMatch: data.matchPercentage || 0,
@@ -241,7 +244,7 @@ function Resume() {
             <div className="mb-4">
               <div className="flex justify-between mb-1">
                 <span className="text-gray-300">Skills Coverage</span>
-                <span className="font-medium">{analysisData.skills.matchPercentage}%</span>
+                <span className="font-medium text-amber-300">{analysisData.skills.matchPercentage}%</span>
               </div>
               <ProgressBar value={analysisData.skills.matchPercentage} />
             </div>
